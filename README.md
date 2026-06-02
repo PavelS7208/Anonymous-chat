@@ -4,7 +4,7 @@
 
 ReadMe [Этапа 2](docs/README_step_2.md)
 
-## Реализация Этап 3 
+## Реализация Этап 3
 
 ### Результаты собственного ревью этапа 2
 
@@ -14,16 +14,129 @@ ReadMe [Этапа 2](docs/README_step_2.md)
 - Логирование что есть включено в доменный уровень chat. Убрать на границы вызовов, а не внутри.
 - Нет никакой защиты от сетевых атак. Проработать и добавить.
 - Логирование по уровням отсутствует. Добавить
-- Ошибоки на уровне http есть, но не покрывают всех веток
+- Ошибки на уровне http есть, но не покрывают всех веток
 - Тесты слабые, покрытие низкое. На уровне http их нет совсем и они затруднены при такой архитектуре.
 - Не везде удачный нейминг типов и методов
 - Один медленный клиент может тормозить стриминг всего чата. Придумать механизм ассинхронноси и работы с медленными клиентами
 
-Исправлени [этап 3](docs/README_step_3.md)
-
 
 ## Изменения и дополнения в функционале
 
-### In progress ....
+### 1. Добавлена защита от атак и RateLimit-ы
+
+```
+Уровень сети/транспорт через параметры:
+  ✅ Timeouts             — Slowloris, slow body, slow read 
+  ✅ MaxHeaderBytes       - массивные URL 
+  
+Уровень кода middleware транспорта:
+  ✅ globalLimiter        - distributed атака
+  ✅ PostBodyLimits       - атака длиной сообщений
+
+Уровень кода сервисной части:
+  ✅ MaxGlobalRooms       — flood комнатами
+  ✅ MaxRoomMembers       — flood участниками  
+  ✅ joinRateLimit        — частота подключений с одного IP
+  ✅ postRateLimit        — частота сообщений с одного IP
+  ✅ connTracker          — flood SSE соединений
+  ✅ sessionGuard         — подмена IP, перехват и рассылка чужого валидного сообщения
+  ✅ Verify(crypto)       - контроль подписи
+  ✅ SessionTTL           - контроль количества активных сессий  
+```
+
+Так как согласно ТЗ протокол не включает nonce/timestamp в данные для сообщения, то защититься от дублей валидных сообщений в полном объеме невозможно.\
+Защита от Replay-атак обеспечивается базово на уровне Rate Limiting.\
+Для строгой защиты требуется версия протокола с шифрованием поля timestamp.
+
+### 2. Добавлен контроль над мертвыми/зависшими комнатами
+Если из комнаты все вышли, и она простояла время T и никто не подключился, то такая комната помечается и удаляется 
+
+### 3. Добавлена загрузка конфигурационных параметров при старте приложения из переменных окружения
+
+Параметры хранятся в переменных окружения и загружаются при загрузке приложения или устанавливаются в дефолтные значения при отсутствии таковых
+
+
+### 4. Добавлено логирование с разным уровнем 
+
+Реализовано через slog со стандартными уровнями DEBUG, INFO, WARN, ERROR.
+Дефолное значение установлено уровня Info, может меняться без остановки сервера через новый endpoint
+
+```
+PUT /debug/loglevel
+```
+
+### 5. Исправлена ошибка передачи ошибок http
+
+После первого Write с flush (chunked stream)— заголовки отправлены клиенту безвозвратно. HTTP/1.1 не позволяет "отозвать" статус. 
+Всё что пишется после — это уже тело с кодом 200.
+Ранее часть ошибок отправлялось позже и вместо, например ошибки http.StatusTooManyRequests (429 Too Many Requests), клиент получал 200 OK с текстом "429 Too Many Requests" в теле.\
+
+Все проверки http уровня организованы ДО начала streaming.
+
+## Особенности программной реализации
+
+Структура проекта и особенности реализации отражены в отдельном readme [этапа 3](docs/README_step_3.md)
+
+## Запуск и выполнение
+
+```
+go run .\cmd\server\main.go
+```
+
+Подключение к комнате
+
+```
+curl.exe --no-buffer http://localhost:8080/testroom
+```
+
+Для тестирования отправки сообщения скрипт python шифрующий сообщения на основании полученного ключа.
+
+Изменение уровня логирования 
+```
+curl.exe --no-buffer -X PUT "http://localhost:8080/debug/loglevel?level=debug"
+```
+
+Пример работы сервера:\
+В процессе работы сервера поменяли уровень лога на Debug
+```
+{"time":"2026-06-02T22:38:49.8475103+10:00","level":"INFO","msg":"server starting","addr":":8080"}
+{"time":"2026-06-02T22:39:11.2052484+10:00","level":"INFO","msg":"http get handler","room":"testroom"}
+{"time":"2026-06-02T22:39:20.3271437+10:00","level":"INFO","msg":"http get handler","room":"testroom"}
+{"time":"2026-06-02T22:39:35.3160251+10:00","level":"INFO","msg":"http get handler","room":"testroom"}
+{"time":"2026-06-02T22:40:00.616393+10:00","level":"INFO","msg":"debug log level set to debug"}
+{"time":"2026-06-02T22:40:00.616393+10:00","level":"INFO","msg":"http request","method":"PUT","path":"/debug/loglevel","status":0,"bytes":0,"dur_ms":0,"ip":"[::1]:52740","req_id":"PAVEL-PC/rpqOGHbsGV-000004"}
+{"time":"2026-06-02T22:40:49.0259765+10:00","level":"INFO","msg":"http get handler","room":"testroom"}
+{"time":"2026-06-02T22:40:49.0259765+10:00","level":"DEBUG","msg":"join request","room":"testroom","ip":"::1"}
+{"time":"2026-06-02T22:40:49.0259765+10:00","level":"WARN","msg":"join rejected","room":"testroom","ip":"::1","err":"too many connections"}
+{"time":"2026-06-02T22:40:49.0259765+10:00","level":"WARN","msg":"http request","method":"GET","path":"/testroom","status":429,"bytes":18,"dur_ms":0,"ip":"[::1]:50485","req_id":"PAVEL-PC/rpqOGHbsGV-000005"}
+{"time":"2026-06-02T22:41:22.6224058+10:00","level":"INFO","msg":"http post handler","room":"testroom"}
+{"time":"2026-06-02T22:41:22.6224058+10:00","level":"DEBUG","msg":"send request","room":"testroom","ip":"::1"}
+{"time":"2026-06-02T22:41:22.6229089+10:00","level":"DEBUG","msg":"message sent","room":"testroom","ip":"::1"}
+{"time":"2026-06-02T22:41:22.6229089+10:00","level":"INFO","msg":"http request","method":"POST","path":"/testroom","status":204,"bytes":0,"dur_ms":0,"ip":"[::1]:54060","req_id":"PAVEL-PC/rpqOGHbsGV-000006"}
+{"time":"2026-06-02T22:41:38.8986782+10:00","level":"INFO","msg":"client disconnected","room":"testroom","ip":"::1","reason":"context canceled"}
+{"time":"2026-06-02T22:41:38.8986782+10:00","level":"INFO","msg":"http request","method":"GET","path":"/testroom","status":200,"bytes":115,"dur_ms":123583,"ip":"[::1]:51176","req_id":"PAVEL-PC/rpqOGHbsGV-000003"}
+{"time":"2026-06-02T22:42:24.483087+10:00","level":"INFO","msg":"shutdown signal received"}
+{"time":"2026-06-02T22:42:34.4830766+10:00","level":"WARN","msg":"http shutdown warning","err":"context deadline exceeded"}
+{"time":"2026-06-02T22:42:34.4830766+10:00","level":"INFO","msg":"server stopped gracefully"}
+```
+
+Пример работы клиентов:\
+Корректный:
+```
+> curl.exe --no-buffer http://localhost:8080/testroom
+3 GubH7J5gVYjK21/CcUziCqFm9+SK2Zp4UXPNv0OK2+k=
+1780403951 1 joined
+1780403960 2 joined
+1780404082 2 : test Message
+>
+```
+Сработал лимит:
+```
+> curl.exe --no-buffer http://localhost:8080/testroom
+Too Many Requests
+>
+```
+
+
 
 
