@@ -26,26 +26,26 @@ In progress ....
     |       app.go                               # Сервер-приложение. Запускаем тут все в работу 
     +---config
     |       config.go                            #  Конфиг уровня app
-    +---domain                                   # Доменная мрдель чата:  http -- service - DOMAIN
-    |   |   bootstrap.go
-    |   |   config.go
-    |   |   const.go
+    +---domain                                   # Доменная мрдель чата:  http -- service - DOMAIN.  Тесты в процессе
+    |   |   bootstrap.go                               # инициализирующее событие с приватним ключом (seed)
+    |   |   config.go                                  # конфиг уровня домена
+    |   |   const.go                                   #  константы из ТЗ
     |   |   errors.go
     |   |   event.go
-    |   |   event_ring_buf.go
+    |   |   event_ring_buf.go                           # реализация кольцевого буфера, для истории и управления медленными клиентами
     |   |   event_test.go
     |   |   export_test.go
     |   |   formatter.go
-    |   |   member.go
+    |   |   member.go                                   # участник чата и его фабрика
     |   |   member_factory.go
-    |   |   member_overflow_buf.go
+    |   |   member_overflow_buf.go                      # механизм дополнительного буфера для медленного клиента
     |   |   member_test.go
     |   |   message.go
-    |   |   room.go
+    |   |   room.go                                     # комната и ее фабрика
     |   |   room_factory.go
-    |   |   room_history_store.go
+    |   |   room_history_store.go                       # история, скрытая за интерфейс (текущая реализацяия или кольцевой буфер или slice )
     |   |   room_test.go
-    |   |   validators.go
+    |   |   validators.go                               # бизнесовая валидация
     |   \---crypto                              # криптография
     |           ed25519.go
     |           provider.go
