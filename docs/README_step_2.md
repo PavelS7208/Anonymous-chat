@@ -1,6 +1,6 @@
 # Тестовый проект: Анонимный чат
 
-Создан по [ТЗ для анонимного чата](docs/taskDescr.md)
+Создан по [ТЗ для анонимного чата](taskDescr.md)
 
 ReadMe [Этапа 1](README_step_1.md)
 
@@ -145,6 +145,5 @@ if err := app.Run(); err != nil {
 ```
 curl.exe --no-buffer http://localhost:8080/testroom
 ``` 
-
 
 
