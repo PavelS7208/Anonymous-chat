@@ -1,6 +1,6 @@
 # Тестовый проект: Анонимный чат. Реализация Этап 3
 
-ReadMe [Этапа 2](docs/README_step_2.md)
+ReadMe [Этапа 2](README_step_2_main.md)
 
 
 ## Оглавление
@@ -350,4 +350,3 @@ type roomStorage interface {
 
 
 ### Бэклог
-
