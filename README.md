@@ -2,7 +2,7 @@
 
 Создан по [ТЗ для анонимного чата](docs/taskDescr.md)
 
-ReadMe [Этапа 2](docs/README_step_2.md)
+ReadMe [Этапа 2](docs/README_step_2_main.md)
 
 ## Реализация Этап 3
 
