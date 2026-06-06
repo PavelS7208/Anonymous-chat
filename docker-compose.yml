@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    image: chat_server:0.1  # <-- Явно указываем имя и версию образа
+    container_name: my-chat-server
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
