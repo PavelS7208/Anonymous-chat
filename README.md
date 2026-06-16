@@ -18,7 +18,7 @@
 
 ### Вариает 2. Время подумать, спроектировать архитектуру, но просто работающий вариант
 
-[ReadMe step_1](https://github.com/PavelS7208/Anonymous-chat/tree/step_2)
+[ReadMe step_2](https://github.com/PavelS7208/Anonymous-chat/tree/step_2)
 
 ### Вариает 3. Крупный рефакторинг прошлого варианта. Поддерживаемый код. Заложены возможности масштабирования
 
